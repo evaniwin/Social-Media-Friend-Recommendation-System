@@ -1,4 +1,4 @@
-#Social Media Friend Recommendation System
+# Social Media Friend Recommendation System
 
 ```
 Design and implement a console-based Social
