@@ -1,5 +1,6 @@
 # Social Media Friend Recommendation System
 
+This project is built with the following criteria
 ```
 Design and implement a console-based Social
 Media Friend Recommendation System using graphs and arrays. Use a graph to model users as nodes
