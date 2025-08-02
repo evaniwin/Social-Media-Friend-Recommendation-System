@@ -4,7 +4,6 @@ CompileFlags:
         - -Wall
         - -Wextra
         - -I./include
-      FallbackFlags:
-        - -std=c99
+         
 Index:
   StandardLibrary: true
