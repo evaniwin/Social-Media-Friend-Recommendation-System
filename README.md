@@ -9,3 +9,22 @@ interests, and recent activity. The system should allow users to find mutual fri
 network, and get friend recommendations based on common interests or friends of friends. Implement
 graph traversal algorithms (such as BFS or DFS) to find the shortest path to potential new friends.
 ```
+### This project is build using make
+
+> [!WARNING]
+> The make Build Utility must be manually installed in windows.
+
+Build the project with
+``` 
+make all
+```
+
+Run the project with
+```
+make run
+```
+
+Clean old build files with 
+```
+make clean
+```
