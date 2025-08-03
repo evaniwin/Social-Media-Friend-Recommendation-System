@@ -14,13 +14,21 @@ typedef struct node {
 } node ;
 
 node *nodelist;
+uint64_t *refrencetable;
 uint64_t nodelistcapacity;
 uint64_t nodelistzize;
 
 int initnodelist(uint64_t basesize){
     //allocate memory for graph nodes
     nodelist = (node *)malloc(sizeof(node)*basesize);
+    
     if (nodelist == NULL) {
+        int errcode = errno;
+        printf("Failed to Allocate Memory 'initnodelist()' errorcode: %d %s",errcode,strerror(errcode));
+        return -1;
+    }
+    refrencetable = (uint64_t *)malloc(sizeof(uint64_t)*basesize);
+    if (refrencetable == NULL) {
         int errcode = errno;
         printf("Failed to Allocate Memory 'initnodelist()' errorcode: %d %s",errcode,strerror(errcode));
         return -1;
@@ -37,6 +45,13 @@ int grownodelist(){
         printf("Failed to Allocate Memory 'grownodelist()' errorcode: %d %s",errcode,strerror(errcode));
         return -1;
     }
+    uint64_t * newrefrencetable = (uint64_t *)realloc(nodelist,sizeof(uint64_t)*newnodelistcapacity);
+    if (newrefrencetable == NULL) {
+        int errcode = errno;
+        printf("Failed to Allocate Memory 'grownodelist()' errorcode: %d %s",errcode,strerror(errcode));
+        return -1;
+    }
+    refrencetable = newrefrencetable;
     nodelist = newnodelist;
     nodelistcapacity = newnodelistcapacity;
     return 0;
@@ -60,6 +75,7 @@ int addnode(uint64_t *handle){
             return -1;
         }
     }
+    
     nodelistzize = nodelistzize+1;
     *handle = nodelistzize-1;
     return 0;
@@ -90,3 +106,5 @@ int removenode(uint64_t nodehandle){
 
     return 0;
 }
+
+
