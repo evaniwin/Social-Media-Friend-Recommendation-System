@@ -1,8 +1,12 @@
-#include <stdio.h>
+#include <curses.h>
 
 int main()
-{
-    printf("Hello abhishek!\n");
-
+{   
+    initscr();
+    printw("Hello abhishek!\n");
+    refresh();
+    getch();
+    clear();
+    endwin();
     return 0;
 }

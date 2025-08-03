@@ -7,12 +7,12 @@
 CC = clang
 
 # define any compile-time flags
-CFLAGS	:= -Wall -Wextra -Werror -fsanitize=undefined -fsanitize=memory -g
+CFLAGS	:= -Wall -Wextra -Werror -fsanitize=undefined -fsanitize=address -g
 
 # define library paths in addition to /usr/lib
 #   if I wanted to include libraries not in /usr/lib I'd specify
 #   their path using -Lpath, something like:
-LFLAGS =
+LFLAGS = -lncurses
 
 # define output directory
 OUTPUT	:= build

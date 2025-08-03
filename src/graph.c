@@ -5,6 +5,7 @@
 #include <stdio.h>
 
 #define basefriendsize 8
+#define errormessagesize 512
 
 typedef struct node {
     char * name;
@@ -16,13 +17,14 @@ typedef struct node {
 node *nodelist;
 uint64_t nodelistcapacity;
 uint64_t nodelistzize;
+char errormessage[errormessagesize];
 
 int initnodelist(uint64_t basesize){
     //allocate memory for graph nodes
     nodelist = (node *)malloc(sizeof(node)*basesize);
     if (nodelist == NULL) {
         int errcode = errno;
-        printf("Failed to Allocate Memory 'initnodelist()' errorcode: %d %s",errcode,strerror(errcode));
+        snprintf(errormessage,errormessagesize,"Failed to Allocate Memory 'initnodelist()' errorcode: %d %s",errcode,strerror(errcode));
         return -1;
     }
     nodelistcapacity = basesize;
@@ -34,7 +36,7 @@ int grownodelist(){
     node * newnodelist = (node *)realloc(nodelist,sizeof(node)*newnodelistcapacity);
     if (newnodelist == NULL) {
         int errcode = errno;
-        printf("Failed to Allocate Memory 'grownodelist()' errorcode: %d %s",errcode,strerror(errcode));
+        snprintf(errormessage,errormessagesize,"Failed to Allocate Memory 'grownodelist()' errorcode: %d %s",errcode,strerror(errcode));
         return -1;
     }
     nodelist = newnodelist;
@@ -46,7 +48,7 @@ int shrinknodelist(){
     node * newnodelist = (node *)realloc(nodelist,sizeof(node)*newnodelistcapacity);
     if (newnodelist == NULL) {
         int errcode = errno;
-        printf("Failed to Allocate Memory 'shrinknodelist()' errorcode: %d %s",errcode,strerror(errcode));
+        snprintf(errormessage,errormessagesize,"Failed to Allocate Memory 'shrinknodelist()' errorcode: %d %s",errcode,strerror(errcode));
         return -1;
     }
     nodelist = newnodelist;
@@ -81,7 +83,7 @@ int removenode(uint64_t nodehandle){
     //}
     uint64_t lastnode = nodelistzize-1;
     if(nodehandle < 0 || nodehandle > lastnode){
-        printf("Invalid node Handle %lu",nodehandle);
+        snprintf(errormessage,errormessagesize,"Invalid node Handle %lu",nodehandle);
         return -1;
     }
     //overwrite the data of element to be deleted with last element
