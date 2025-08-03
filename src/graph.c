@@ -1,17 +1,10 @@
 #include <stdlib.h>
-#include <stdint.h>
+#include <stdio.h>
 #include <errno.h>
 #include <string.h>
-#include <stdio.h>
+#include "includes/graph.h"
 
 #define basefriendsize 8
-
-typedef struct node {
-    char * name;
-    char ** intrests;
-    char * recentactivity;
-    struct node * friends;
-} node ;
 
 node *nodelist;
 uint64_t *refrencetable;

@@ -1,9 +1,20 @@
 CompileFlags:
       Add:
-        - -std=c23
         - -Wall
         - -Wextra
         - -I./include
-         
+---
+If:
+  PathMatch: .*\.c$
+CompileFlags:
+  # Force C mode
+  Add: [‑xc, ‑std=c23]
+---
+If:
+  PathMatch: .*\.h$
+CompileFlags:
+  # Treat as C header
+  Add: [‑xc‑header, ‑std=c23]
+---
 Index:
   StandardLibrary: true
