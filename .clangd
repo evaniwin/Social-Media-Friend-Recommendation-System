@@ -2,6 +2,7 @@ CompileFlags:
       Add:
         - -Wall
         - -Wextra
+        - -Weverything
         - -I./include
 ---
 If:
