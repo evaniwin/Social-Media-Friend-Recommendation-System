@@ -183,13 +183,20 @@ int addnode(graph_t *graph, uint64_t *noderef)
 int removenode(graph_t *graph, uint64_t noderef)
 {
 	node_t *node = &(graph->nodelist[noderef]);
+	uint64_t size = 0;
+	uint64_t refrence = 0;
+	//logic to remove node
+	if (graph->nodelistzize <= noderef) {
+		printf("Error Out of bounds access in friend does not exist 'removenode()'\n");
+		return -1;
+	}
 	free(node->name);
 	node->name = NULL;
 	free(node->recentactivity);
 	node->recentactivity = NULL;
 
-	for (uint64_t i = 0; i < node->friendCount; i++) {
-		//TODO 	add delete friend refrences logic
+	while (node->friendCount != 0) {
+		removefriend(graph, noderef, node->friends[0], 0);
 	}
 	free(node->friends);
 	node->friends = NULL;
@@ -200,6 +207,18 @@ int removenode(graph_t *graph, uint64_t noderef)
 	free((void *)node->intrests);
 	node->intrests = NULL;
 	graph->nodelistzize--;
+	graph->nodelist[noderef] = graph->nodelist[graph->nodelistzize];
+	//update old refrences
+	size = graph->nodelist[noderef].friendCount;
+	for (uint64_t i = 0; i < size; i++) {
+		refrence = graph->nodelist[noderef].friends[i];
+		for (uint64_t j = 0; j < graph->nodelist[refrence].friendCount; j++) {
+			if (graph->nodelist[refrence].friends[j] == graph->nodelistzize) {
+				graph->nodelist[refrence].friends[j] = noderef;
+				break;
+			}
+		}
+	}
 	return 0;
 }
 int checkifalreadyfriend(node_t *node, uint64_t refid)
