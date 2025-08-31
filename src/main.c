@@ -23,8 +23,6 @@ typedef struct node {
 } node_t;
 typedef struct {
 	node_t *nodelist;
-	//TODO remove refrence table
-	uint64_t *refrencetable;
 	uint64_t nodelistcapacity;
 	uint64_t nodelistzize;
 } graph_t;
@@ -58,13 +56,6 @@ int initnodelist(uint64_t basesize, graph_t **graph)
 		free(*graph);
 		return -1;
 	}
-	(*graph)->refrencetable = (uint64_t *)malloc(sizeof(uint64_t) * basesize);
-	if ((*graph)->refrencetable == NULL) {
-		perror("Failed to Allocate Memory 'initnodelist()' ");
-		free((*graph)->nodelist);
-		free(*graph);
-		return -1;
-	}
 	(*graph)->nodelistcapacity = basesize;
 	(*graph)->nodelistzize = 0;
 	return 0;
@@ -94,7 +85,6 @@ int deinitnodelist(graph_t **graph)
 		free((void *)node->intrests);
 	}
 graphfree:
-	free((*graph)->refrencetable);
 	free((*graph)->nodelist);
 	free(*graph);
 	*graph = NULL;
@@ -103,7 +93,6 @@ graphfree:
 int grownodelist(graph_t *graph)
 {
 	uint64_t newnodelistcapacity = graph->nodelistcapacity * memorygrowthmultiplier;
-	uint64_t *newrefrencetable = NULL;
 	node_t *newnodelist = NULL;
 
 	if (graph->nodelistcapacity > UINT64_MAX / memorygrowthmultiplier) {
@@ -117,20 +106,12 @@ int grownodelist(graph_t *graph)
 	}
 	graph->nodelist = newnodelist;
 
-	newrefrencetable = (uint64_t *)realloc(graph->refrencetable, sizeof(uint64_t) * newnodelistcapacity);
-	if (newrefrencetable == NULL) {
-		perror("Failed to Allocate Memory 'grownodelist()' ");
-		return -1;
-	}
-	graph->refrencetable = newrefrencetable;
-
 	graph->nodelistcapacity = newnodelistcapacity;
 	return 0;
 }
 int shrinknodelist(graph_t *graph)
 {
 	uint64_t newnodelistcapacity = graph->nodelistcapacity / memoryshrinkmultiplier;
-	uint64_t *newrefrencetable = NULL;
 	node_t *newnodelist = NULL;
 
 	if (newnodelistcapacity < graph->nodelistzize) {
@@ -148,12 +129,6 @@ int shrinknodelist(graph_t *graph)
 	}
 	graph->nodelist = newnodelist;
 	graph->nodelistcapacity = newnodelistcapacity;
-	newrefrencetable = (uint64_t *)realloc(graph->refrencetable, sizeof(uint64_t) * newnodelistcapacity);
-	if (newrefrencetable == NULL) {
-		perror("Failed to Allocate Memory 'shrinknodelist()' ");
-		return -1;
-	}
-	graph->refrencetable = newrefrencetable;
 	return 0;
 }
 int addnode(graph_t *graph, uint64_t *noderef)
