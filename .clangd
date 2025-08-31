@@ -3,6 +3,7 @@ CompileFlags:
         - -Wall
         - -Wextra
         - -Weverything
+        - -Wno-unsafe-buffer-usage
         - -I./include
 ---
 If:

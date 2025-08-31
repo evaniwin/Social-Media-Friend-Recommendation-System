@@ -7,7 +7,7 @@
 CC = clang
 
 # define any compile-time flags
-CFLAGS	:= -Wall -Wextra -fsanitize=undefined -fsanitize=address -Og -g
+CFLAGS	:= -Wall -Wextra -Weverything -Wno-unsafe-buffer-usage -fsanitize=undefined -fsanitize=address -fsanitize=leak -Og -g
 
 # define library paths in addition to /usr/lib
 #   if I wanted to include libraries not in /usr/lib I'd specify
