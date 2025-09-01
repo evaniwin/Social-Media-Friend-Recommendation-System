@@ -5,11 +5,14 @@
 #include <sys/types.h>
 
 #define minimumlistsize 8
+#define basefriendssize 8
+#define baseintrestsize 8
+
 #define memorygrowthmultiplier 2
 #define memoryshrinkmultiplier 2
 #define growthreshold 100
 #define shrinkthreshold 25
-#define basefriendssize 8
+
 #define topercent(nominator, denominatior) ((nominator * 100) / denominatior)
 //types
 typedef struct node {
@@ -20,6 +23,7 @@ typedef struct node {
 	uint64_t friendCount;
 	uint64_t friendCapacity;
 	uint64_t intrestcount;
+	uint64_t intrestcapacity;
 } node_t;
 typedef struct {
 	node_t *nodelist;
@@ -36,6 +40,8 @@ typedef struct {
 int initnodelist(uint64_t basesize, graph_t **graph);
 int deinitnodelist(graph_t **graph);
 int grownodelist(graph_t *graph);
+int checkshrinkfit(uint64_t count, uint64_t capacity, uint64_t minsize);
+uint64_t max(uint64_t numa, uint64_t numb);
 int shrinknodelist(graph_t *graph);
 int addnode(graph_t *graph, uint64_t *noderef);
 int removenode(graph_t *graph, uint64_t noderef);
@@ -43,6 +49,8 @@ int checkifalreadyfriend(node_t *node, uint64_t refid);
 int swapbackarrayremove(uint64_t *array, uint64_t arraysize, uint64_t target);
 int addfriend(graph_t *graph, uint64_t friend1, uint64_t friend2);
 int removefriend(graph_t *graph, uint64_t friend1, uint64_t friend2, int attemptshrinking);
+int addintrest(graph_t *graph, uint64_t refno, char *intrest);
+int removeintrest(graph_t *graph, uint64_t refno, uint64_t intrestno);
 int createqueue(queue_t **queue, uint64_t size);
 int destroyqueue(queue_t **queue);
 int enqueue(queue_t *queue, uint64_t value);
@@ -120,6 +128,20 @@ int grownodelist(graph_t *graph)
 	graph->nodelistcapacity = newnodelistcapacity;
 	return 0;
 }
+int checkshrinkfit(uint64_t count, uint64_t capacity, uint64_t minsize)
+{
+	int inshrinkthreshold = topercent(count, capacity) < shrinkthreshold;
+	int isfit = (capacity / memoryshrinkmultiplier) > count;
+	int isabovemin = capacity > minsize;
+	return inshrinkthreshold && isfit && isabovemin;
+}
+uint64_t max(uint64_t numa, uint64_t numb)
+{
+	if (numa > numb) {
+		return numa;
+	}
+	return numb;
+}
 int shrinknodelist(graph_t *graph)
 {
 	uint64_t newnodelistcapacity = graph->nodelistcapacity / memoryshrinkmultiplier;
@@ -155,13 +177,20 @@ int addnode(graph_t *graph, uint64_t *noderef)
 	newnode->recentactivity = NULL;
 	newnode->friendCount = 0;
 	newnode->intrestcount = 0;
+
 	newnode->friends = (uint64_t *)malloc(sizeof(uint64_t) * basefriendssize);
 	if (newnode->friends == NULL) {
 		perror("Failed to Allocate Memory 'addnode()' ");
 		return -1;
 	}
 	newnode->friendCapacity = basefriendssize;
-	newnode->intrests = NULL;
+
+	newnode->intrests = (char **)malloc(sizeof(char *) * baseintrestsize);
+	if (newnode->intrests == NULL) {
+		perror("Failed to Allocate Memory 'addnode()' ");
+		return -1;
+	}
+	newnode->intrestcapacity = baseintrestsize;
 	*noderef = graph->nodelistsize;
 	graph->nodelistsize++;
 	return 0;
@@ -299,7 +328,9 @@ int swapbackarrayremove(uint64_t *array, uint64_t arraysize, uint64_t target)
 		}
 	}
 	if (found) {
-		array[foundind] = array[arraysize - 1];
+		if (arraysize > 1) {
+			array[foundind] = array[arraysize - 1];
+		}
 	} else {
 		printf("Error Element to remove not found in 'swapbackarrayreplace()'\n");
 		return -1;
@@ -357,8 +388,9 @@ int removefriend(graph_t *graph, uint64_t friend1, uint64_t friend2, int attempt
 
 	//shrink to save memory if conditions meet
 	if (attemptshrinking) {
-		uint64_t newsize = nodef1->friendCapacity / memoryshrinkmultiplier;
-		if ((basefriendssize < newsize) && (topercent(nodef1->friendCount, nodef1->friendCapacity) <= shrinkthreshold)) {
+		uint64_t newsize = 0;
+		if (checkshrinkfit(nodef1->friendCount, nodef1->friendCapacity, basefriendssize)) {
+			newsize = max(nodef1->friendCapacity / memoryshrinkmultiplier, basefriendssize);
 			friendlist = (uint64_t *)realloc(nodef1->friends, sizeof(uint64_t) * newsize);
 			if (friendlist == NULL) {
 				perror("Memory shrink operation failed 'removefriend()' ");
@@ -368,8 +400,8 @@ int removefriend(graph_t *graph, uint64_t friend1, uint64_t friend2, int attempt
 			}
 		}
 
-		newsize = nodef2->friendCapacity / memoryshrinkmultiplier;
-		if ((basefriendssize < newsize) && (topercent(nodef2->friendCount, nodef2->friendCapacity) <= shrinkthreshold)) {
+		if (checkshrinkfit(nodef2->friendCount, nodef2->friendCapacity, basefriendssize)) {
+			newsize = max(nodef2->friendCapacity / memoryshrinkmultiplier, basefriendssize);
 			friendlist = (uint64_t *)realloc(nodef2->friends, sizeof(uint64_t) * newsize);
 			if (friendlist == NULL) {
 				perror("Memory shrink operation failed 'removefriend()' ");
@@ -378,6 +410,85 @@ int removefriend(graph_t *graph, uint64_t friend1, uint64_t friend2, int attempt
 				nodef2->friendCapacity = newsize;
 			}
 		}
+	}
+	return 0;
+}
+int addintrest(graph_t *graph, uint64_t refno, char *intrest)
+{
+	char **tempintrest = NULL;
+	char *newintrest = NULL;
+	node_t *node = NULL;
+	if (graph == NULL) {
+		printf("Error null passed insted of pointer to graph in 'addintrest()'\n");
+		return -1;
+	}
+	if (intrest == NULL) {
+		printf("Null passed insted of intrest string in 'addintrest()'\n");
+		return -1;
+	}
+	if (refno >= graph->nodelistsize) {
+		printf("Error invalid node refrence in 'addintrest()'\n");
+		return -1;
+	}
+	newintrest = (char *)malloc(sizeof(char) * (strlen(intrest) + 1));
+	if (newintrest == NULL) {
+		perror("Memory allocation failed 'addintrest()' ");
+		return -1;
+	}
+	strcpy(newintrest, intrest);
+	node = &(graph->nodelist[refno]);
+	if (node->intrestcount >= node->intrestcapacity) {
+		uint64_t newsize = node->intrestcapacity * memorygrowthmultiplier;
+		if(newsize < node->intrestcapacity){
+			printf("Possible intiger overflow or misconfiguration detected\n");
+			return -1;
+		}
+		tempintrest = (char **)realloc((void *)node->intrests, sizeof(char *) * newsize);
+		if (tempintrest == NULL) {
+			free(newintrest);
+			perror("Memory allocation failed 'addintrest()' ");
+			return -1;
+		}
+		node->intrestcapacity = newsize;
+		node->intrests = tempintrest;
+	}
+	node->intrests[node->intrestcount] = newintrest;
+	node->intrestcount++;
+	return 0;
+}
+int removeintrest(graph_t *graph, uint64_t refno, uint64_t intrestno)
+{
+	char **tempintrest = NULL;
+	node_t *node = NULL;
+
+	if (graph == NULL) {
+		printf("Error null passed insted of pointer to graph in 'removeintrest()'\n");
+		return -1;
+	}
+	if (refno >= graph->nodelistsize) {
+		printf("Error invalid node refrence in 'removeintrest()'\n");
+		return -1;
+	}
+	if (intrestno >= graph->nodelist[refno].intrestcount) {
+		printf("Error invalid intrest refrence in 'removeintrest()'\n");
+		return -1;
+	}
+	node = &(graph->nodelist[refno]);
+	//free the memory and swapback last element to fill hole
+	free(node->intrests[intrestno]);
+	node->intrestcount--;
+	if (node->intrestcount != 0) {
+		node->intrests[intrestno] = node->intrests[node->intrestcount];
+	}
+	if (checkshrinkfit(node->intrestcount, node->intrestcapacity, baseintrestsize)) {
+		uint64_t newsize = max(node->intrestcapacity / memoryshrinkmultiplier, baseintrestsize);
+		tempintrest = (char **)realloc((void *)node->intrests, sizeof(char *) * newsize);
+		if (tempintrest == NULL) {
+			perror("Memory allocation failed 'removeintrest()' ");
+			return -1;
+		}
+		node->intrests = tempintrest;
+		node->intrestcapacity = newsize;
 	}
 	return 0;
 }
