@@ -26,6 +26,12 @@ typedef struct {
 	uint64_t nodelistcapacity;
 	uint64_t nodelistzize;
 } graph_t;
+typedef struct {
+	uint64_t *memory;
+	uint64_t front;
+	uint64_t size;
+	uint64_t capacity;
+} queue_t;
 //function prototypes
 int initnodelist(uint64_t basesize, graph_t **graph);
 int deinitnodelist(graph_t **graph);
@@ -37,6 +43,11 @@ int checkifalreadyfriend(node_t *node, uint64_t refid);
 int swapbackarrayremove(uint64_t *array, uint64_t arraysize, uint64_t target);
 int addfriend(graph_t *graph, uint64_t friend1, uint64_t friend2);
 int removefriend(graph_t *graph, uint64_t friend1, uint64_t friend2, int attemptshrinking);
+int createqueue(queue_t **queue, uint64_t size);
+int destroyqueue(queue_t **queue);
+int enqueue(queue_t *queue, uint64_t value);
+int dequeue(queue_t *queue, uint64_t *value);
+int findmutualfriends(graph_t *graph, uint64_t noderef);
 
 int initnodelist(uint64_t basesize, graph_t **graph)
 {
@@ -368,6 +379,83 @@ int removefriend(graph_t *graph, uint64_t friend1, uint64_t friend2, int attempt
 			}
 		}
 	}
+	return 0;
+}
+int createqueue(queue_t **queue, uint64_t size)
+{
+	if (queue == NULL) {
+		printf("Error null check failed, NULL given as arguement when expected pointer in 'createqueue()'\n");
+		return -1;
+	}
+	if (*queue != NULL) {
+		printf("Error null check failed queue not initilized to NULL in 'createqueue()'\n");
+		return -1;
+	}
+	if (size == 0) {
+		printf("Error cannot create queue of zero size in 'createqueue()'\n");
+		return -1;
+	}
+	*queue = (queue_t *)malloc(sizeof(queue_t));
+	if (*queue == NULL) {
+		perror("Memory allocation failed 'createqueue()' ");
+		return -1;
+	}
+	(*queue)->memory = (uint64_t *)malloc(sizeof(uint64_t) * size);
+	if ((*queue)->memory == NULL) {
+		perror("Memory allocation failed 'createqueue()' ");
+		free(*queue);
+		*queue = NULL;
+		return -1;
+	}
+	(*queue)->front = 0;
+	(*queue)->size = 0;
+	(*queue)->capacity = size;
+	return 0;
+}
+int destroyqueue(queue_t **queue)
+{
+	if (queue == NULL) {
+		printf("Error null check failed, NULL given as arguement when expected pointer in 'destroyqueue()'\n");
+		return -1;
+	}
+	if (*queue == NULL) {
+		printf("Error null check failed queue not exist in 'destroyqueue()'\n");
+		return -1;
+	}
+	free((*queue)->memory);
+	free(*queue);
+	*queue = NULL;
+	return 0;
+}
+int enqueue(queue_t *queue, uint64_t value)
+{
+	uint64_t next = 0;
+	if (queue == NULL) {
+		printf("Error null check failed, NULL given as arguement when expected pointer in 'enqueue()'\n");
+		return -1;
+	}
+	if (queue->size == queue->capacity) {
+		printf("Error queue is full unable to enqueue\n");
+		return -1;
+	}
+	next = (queue->front + queue->size) % queue->capacity;
+	queue->memory[next] = value;
+	queue->size++;
+	return 0;
+}
+int dequeue(queue_t *queue, uint64_t *value)
+{
+	if (queue == NULL || value == NULL) {
+		printf("Error null check failed, NULL given as arguement when expected pointer in 'dequeue()'\n");
+		return -1;
+	}
+	if (queue->size == 0) {
+		printf("Error queue is empty unable to dequeue\n");
+		return -1;
+	}
+	*value = queue->memory[queue->front];
+	queue->front = (queue->front + 1) % queue->capacity;
+	queue->size--;
 	return 0;
 }
 int main(void)
