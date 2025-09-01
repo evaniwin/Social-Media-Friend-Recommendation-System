@@ -24,7 +24,7 @@ typedef struct node {
 typedef struct {
 	node_t *nodelist;
 	uint64_t nodelistcapacity;
-	uint64_t nodelistzize;
+	uint64_t nodelistsize;
 } graph_t;
 typedef struct {
 	uint64_t *memory;
@@ -68,7 +68,7 @@ int initnodelist(uint64_t basesize, graph_t **graph)
 		return -1;
 	}
 	(*graph)->nodelistcapacity = basesize;
-	(*graph)->nodelistzize = 0;
+	(*graph)->nodelistsize = 0;
 	return 0;
 }
 int deinitnodelist(graph_t **graph)
@@ -82,7 +82,7 @@ int deinitnodelist(graph_t **graph)
 		printf("Improperly initilized nodelist detected may be corruption\n");
 		goto graphfree;
 	}
-	for (uint64_t i = 0; i < (*graph)->nodelistzize; i++) {
+	for (uint64_t i = 0; i < (*graph)->nodelistsize; i++) {
 		node = &((*graph)->nodelist[i]);
 		free(node->name);
 		free(node->recentactivity);
@@ -125,7 +125,7 @@ int shrinknodelist(graph_t *graph)
 	uint64_t newnodelistcapacity = graph->nodelistcapacity / memoryshrinkmultiplier;
 	node_t *newnodelist = NULL;
 
-	if (newnodelistcapacity < graph->nodelistzize) {
+	if (newnodelistcapacity < graph->nodelistsize) {
 		printf("Warning Data Truncation Detected Aborting 'shrinknodelist()' without making changes\n");
 		return -1;
 	}
@@ -145,12 +145,12 @@ int shrinknodelist(graph_t *graph)
 int addnode(graph_t *graph, uint64_t *noderef)
 {
 	node_t *newnode = NULL;
-	if (graph->nodelistcapacity == graph->nodelistzize) {
+	if (graph->nodelistcapacity == graph->nodelistsize) {
 		if (grownodelist(graph)) {
 			return -1;
 		}
 	}
-	newnode = &(graph->nodelist[graph->nodelistzize]);
+	newnode = &(graph->nodelist[graph->nodelistsize]);
 	newnode->name = NULL;
 	newnode->recentactivity = NULL;
 	newnode->friendCount = 0;
@@ -162,8 +162,8 @@ int addnode(graph_t *graph, uint64_t *noderef)
 	}
 	newnode->friendCapacity = basefriendssize;
 	newnode->intrests = NULL;
-	*noderef = graph->nodelistzize;
-	graph->nodelistzize++;
+	*noderef = graph->nodelistsize;
+	graph->nodelistsize++;
 	return 0;
 }
 int removenode(graph_t *graph, uint64_t noderef)
@@ -172,7 +172,7 @@ int removenode(graph_t *graph, uint64_t noderef)
 	uint64_t size = 0;
 	uint64_t refrence = 0;
 	//logic to remove node
-	if (graph->nodelistzize <= noderef) {
+	if (graph->nodelistsize <= noderef) {
 		printf("Error Out of bounds access in friend does not exist 'removenode()'\n");
 		return -1;
 	}
@@ -192,14 +192,14 @@ int removenode(graph_t *graph, uint64_t noderef)
 	}
 	free((void *)node->intrests);
 	node->intrests = NULL;
-	graph->nodelistzize--;
-	graph->nodelist[noderef] = graph->nodelist[graph->nodelistzize];
+	graph->nodelistsize--;
+	graph->nodelist[noderef] = graph->nodelist[graph->nodelistsize];
 	//update old refrences
 	size = graph->nodelist[noderef].friendCount;
 	for (uint64_t i = 0; i < size; i++) {
 		refrence = graph->nodelist[noderef].friends[i];
 		for (uint64_t j = 0; j < graph->nodelist[refrence].friendCount; j++) {
-			if (graph->nodelist[refrence].friends[j] == graph->nodelistzize) {
+			if (graph->nodelist[refrence].friends[j] == graph->nodelistsize) {
 				graph->nodelist[refrence].friends[j] = noderef;
 				break;
 			}
@@ -231,7 +231,7 @@ int addfriend(graph_t *graph, uint64_t friend1, uint64_t friend2)
 		printf("Attept to add self as friend detected\n");
 		return -1;
 	}
-	if (graph->nodelistzize <= friend1 || graph->nodelistzize <= friend2) {
+	if (graph->nodelistsize <= friend1 || graph->nodelistsize <= friend2) {
 		printf("Error Out of bounds access in friend does not exist 'addfriend()'\n");
 		return -1;
 	}
@@ -321,7 +321,7 @@ int removefriend(graph_t *graph, uint64_t friend1, uint64_t friend2, int attempt
 		printf("Attept to remove self sa friend detected\n");
 		return -1;
 	}
-	if (graph->nodelistzize <= friend1 || graph->nodelistzize <= friend2) {
+	if (graph->nodelistsize <= friend1 || graph->nodelistsize <= friend2) {
 		printf("Error Out of bounds access in possible corruption 'removefriend()'\n");
 		return -1;
 	}
