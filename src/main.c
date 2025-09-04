@@ -22,6 +22,7 @@ typedef struct node {
 	uint64_t *friends;
 	uint64_t friendCount;
 	uint64_t friendCapacity;
+	uint64_t searchhitcount;
 	uint64_t intrestcount;
 	uint64_t intrestcapacity;
 } node_t;
@@ -31,11 +32,19 @@ typedef struct {
 	uint64_t nodelistsize;
 } graph_t;
 typedef struct {
-	uint64_t *memory;
+	uint64_t friend;
+	uint64_t level;
+} Bfs_t;
+typedef struct {
+	Bfs_t *memory;
 	uint64_t front;
 	uint64_t size;
 	uint64_t capacity;
 } queue_t;
+typedef struct {
+	uint64_t friend;
+	uint64_t mutualconnections;
+} friends_t;
 //function prototypes
 int initnodelist(uint64_t basesize, graph_t **graph);
 int deinitnodelist(graph_t **graph);
@@ -53,9 +62,11 @@ int addintrest(graph_t *graph, uint64_t refno, char *intrest);
 int removeintrest(graph_t *graph, uint64_t refno, uint64_t intrestno);
 int createqueue(queue_t **queue, uint64_t size);
 int destroyqueue(queue_t **queue);
-int enqueue(queue_t *queue, uint64_t value);
-int dequeue(queue_t *queue, uint64_t *value);
-int findmutualfriends(graph_t *graph, uint64_t noderef);
+int enqueue(queue_t *queue, uint64_t value, uint64_t level);
+int dequeue(queue_t *queue, Bfs_t *value);
+int peek(queue_t *queue, Bfs_t *value, uint64_t index);
+int resetsearchhitcount(graph_t *graph);
+int BFS_mutualfriend(graph_t *graph, uint64_t refno,friends_t **recommendationlist);
 
 int initnodelist(uint64_t basesize, graph_t **graph)
 {
@@ -177,7 +188,7 @@ int addnode(graph_t *graph, uint64_t *noderef)
 	newnode->recentactivity = NULL;
 	newnode->friendCount = 0;
 	newnode->intrestcount = 0;
-
+	newnode->searchhitcount = 0;
 	newnode->friends = (uint64_t *)malloc(sizeof(uint64_t) * basefriendssize);
 	if (newnode->friends == NULL) {
 		perror("Failed to Allocate Memory 'addnode()' ");
@@ -187,6 +198,7 @@ int addnode(graph_t *graph, uint64_t *noderef)
 
 	newnode->intrests = (char **)malloc(sizeof(char *) * baseintrestsize);
 	if (newnode->intrests == NULL) {
+		free(newnode->friends);
 		perror("Failed to Allocate Memory 'addnode()' ");
 		return -1;
 	}
@@ -439,7 +451,7 @@ int addintrest(graph_t *graph, uint64_t refno, char *intrest)
 	node = &(graph->nodelist[refno]);
 	if (node->intrestcount >= node->intrestcapacity) {
 		uint64_t newsize = node->intrestcapacity * memorygrowthmultiplier;
-		if(newsize < node->intrestcapacity){
+		if (newsize < node->intrestcapacity) {
 			printf("Possible intiger overflow or misconfiguration detected\n");
 			return -1;
 		}
@@ -511,7 +523,7 @@ int createqueue(queue_t **queue, uint64_t size)
 		perror("Memory allocation failed 'createqueue()' ");
 		return -1;
 	}
-	(*queue)->memory = (uint64_t *)malloc(sizeof(uint64_t) * size);
+	(*queue)->memory = (Bfs_t *)malloc(sizeof(Bfs_t) * size);
 	if ((*queue)->memory == NULL) {
 		perror("Memory allocation failed 'createqueue()' ");
 		free(*queue);
@@ -538,7 +550,7 @@ int destroyqueue(queue_t **queue)
 	*queue = NULL;
 	return 0;
 }
-int enqueue(queue_t *queue, uint64_t value)
+int enqueue(queue_t *queue, uint64_t value, uint64_t level)
 {
 	uint64_t next = 0;
 	if (queue == NULL) {
@@ -550,11 +562,12 @@ int enqueue(queue_t *queue, uint64_t value)
 		return -1;
 	}
 	next = (queue->front + queue->size) % queue->capacity;
-	queue->memory[next] = value;
+	queue->memory[next].friend = value;
+	queue->memory[next].level = level;
 	queue->size++;
 	return 0;
 }
-int dequeue(queue_t *queue, uint64_t *value)
+int dequeue(queue_t *queue, Bfs_t *value)
 {
 	if (queue == NULL || value == NULL) {
 		printf("Error null check failed, NULL given as arguement when expected pointer in 'dequeue()'\n");
@@ -567,6 +580,64 @@ int dequeue(queue_t *queue, uint64_t *value)
 	*value = queue->memory[queue->front];
 	queue->front = (queue->front + 1) % queue->capacity;
 	queue->size--;
+	return 0;
+}
+int peek(queue_t *queue, Bfs_t *value, uint64_t index)
+{
+	uint64_t relativeindex = 0;
+	if (queue == NULL || value == NULL) {
+		printf("Error null check failed, NULL given as arguement when expected pointer in 'peek()'\n");
+		return -1;
+	}
+	if (index >= queue->size) {
+		printf("Out of bounds\n");
+		return -1;
+	}
+	relativeindex = (queue->front + index) % queue->capacity;
+	*value = queue->memory[relativeindex];
+	return 0;
+}
+int resetsearchhitcount(graph_t *graph)
+{
+	for (uint64_t i = 0; i < graph->nodelistsize; i++) {
+		graph->nodelist[i].searchhitcount = 0;
+	}
+	return 0;
+}
+int BFS_mutualfriend(graph_t *graph, uint64_t refno,friends_t **recommendationlist)
+{
+	queue_t *queue = NULL;
+	Bfs_t value;
+	uint64_t friend = 0;
+	uint64_t index = 0;
+	if (graph == NULL) {
+		printf("Error null passed insted of pointer to graph in 'BFS_mutualfriend()'\n");
+		return -1;
+	}
+	if (refno >= graph->nodelistsize) {
+		printf("Invalid refno in 'BFS_mutualfriend()'\n");
+		return -1;
+	}
+	resetsearchhitcount(graph);
+	createqueue(&queue, graph->nodelistsize);
+	enqueue(queue, refno, 0);
+	for (index=0; 1; index++) {
+		if (peek(queue, &value, index)) {
+			break;
+		}
+		if (value.level >= 2) {
+			break;
+		}
+		for (uint64_t j = 0; j < graph->nodelist[refno].friendCount; j++) {
+			friend = graph->nodelist[refno].friends[j];
+			if (graph->nodelist[friend].searchhitcount == 0) {
+				enqueue(queue, friend, value.level + 1);
+			}
+			graph->nodelist[friend].searchhitcount++;
+		}
+	}
+	//TODO Create sorted friend recommendation list based on mutualconnections
+	destroyqueue(&queue);
 	return 0;
 }
 int main(void)
