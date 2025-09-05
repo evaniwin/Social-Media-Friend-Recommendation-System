@@ -587,7 +587,7 @@ int dequeue(queue_t *queue, Bfs_t *value)
 		return -1;
 	}
 	if (queue->size == 0) {
-		printf("Error queue is empty unable to dequeue\n");
+		//printf("Error queue is empty unable to dequeue\n");
 		return -1;
 	}
 	*value = queue->memory[queue->front];
@@ -671,6 +671,9 @@ int BFS_mutualfriend(graph_t *graph, uint64_t refno, friends_t **recommendationl
 		dequeue(queue, &value);
 		for (uint64_t j = 0; j < graph->nodelist[value.friend].friendCount; j++) {
 			friend = graph->nodelist[value.friend].friends[j];
+			if(friend == refno){
+				continue;
+			}
 			if (graph->nodelist[friend].searchhitcount == 0) {
 				enqueue(queue, friend, value.level + 1);
 			}
@@ -1002,7 +1005,7 @@ int main(void)
 			putchar('\n');
 			BFS_mutualfriend(graph, ref1, &sortedarray, &size);
 			for (uint64_t i = 0; i < size; i++) {
-				printf("Reccomendation %lu with %lu mutual friends\n", i, sortedarray[i].mutualconnections);
+				printf("Reccomendation %lu with %lu mutual friends\n", i+1, sortedarray[i].mutualconnections);
 				viewnode(graph, sortedarray[i].friend);
 			}
 			free(sortedarray);
@@ -1021,7 +1024,7 @@ int main(void)
 			putchar('\n');
 			mutualintrestfriend(graph, ref1, &sortedarray, &size);
 			for (uint64_t i = 0; i < size; i++) {
-				printf("Reccomendation %lu with %lu mutual Intrests\n", i, sortedarray[i].mutualconnections);
+				printf("Reccomendation %lu with %lu mutual Intrests\n", i+1, sortedarray[i].mutualconnections);
 				viewnode(graph, sortedarray[i].friend);
 			}
 			free(sortedarray);
