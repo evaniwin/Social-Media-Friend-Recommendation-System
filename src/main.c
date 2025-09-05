@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -68,6 +69,10 @@ int resetsearchhitcount(graph_t *graph);
 int sortfriends(const void *friend1p, const void *friend2p);
 int BFS_mutualfriend(graph_t *graph, uint64_t refno, friends_t **recommendationlist, uint64_t *size);
 int mutualintrestfriend(graph_t *graph, uint64_t refno, friends_t **recommendationlist, uint64_t *size);
+int viewnode(graph_t *graph, uint64_t refno);
+int viewnodes(graph_t *graph);
+int getapproval(const char *prompt);
+
 int initnodelist(uint64_t basesize, graph_t **graph)
 {
 	if (graph == NULL || *graph != NULL) {
@@ -92,7 +97,7 @@ int initnodelist(uint64_t basesize, graph_t **graph)
 }
 int deinitnodelist(graph_t **graph)
 {
-	node_t *node = NULL;
+	node_t node;
 	if (graph == NULL || *graph == NULL) {
 		printf("Invalid arguement passed to 'deinitnodelist()' in graph NULL check triggered\n");
 		return -1;
@@ -102,17 +107,17 @@ int deinitnodelist(graph_t **graph)
 		goto graphfree;
 	}
 	for (uint64_t i = 0; i < (*graph)->nodelistsize; i++) {
-		node = &((*graph)->nodelist[i]);
-		free(node->name);
-		free(node->recentactivity);
-		free((void *)node->friends);
-		if (node->intrests == NULL) {
+		node = (*graph)->nodelist[i];
+		free(node.name);
+		free(node.recentactivity);
+		free((void *)node.friends);
+		if (node.intrests == NULL) {
 			continue;
 		}
-		for (uint64_t j = 0; j < node->intrestcount; j++) {
-			free(node->intrests[j]);
+		for (uint64_t j = 0; j < node.intrestcount; j++) {
+			free(node.intrests[j]);
 		}
-		free((void *)node->intrests);
+		free((void *)node.intrests);
 	}
 graphfree:
 	free((*graph)->nodelist);
@@ -599,6 +604,10 @@ int peek(queue_t *queue, Bfs_t *value, uint64_t index)
 }
 int resetsearchhitcount(graph_t *graph)
 {
+	if (graph == NULL) {
+		printf("Expected pointer to graph in 'resetsearchhitcount()'\n");
+		return -1;
+	}
 	for (uint64_t i = 0; i < graph->nodelistsize; i++) {
 		graph->nodelist[i].searchhitcount = 0;
 	}
@@ -627,6 +636,18 @@ int BFS_mutualfriend(graph_t *graph, uint64_t refno, friends_t **recommendationl
 	}
 	if (refno >= graph->nodelistsize) {
 		printf("Invalid refno in 'BFS_mutualfriend()'\n");
+		return -1;
+	}
+	if (size == NULL) {
+		printf("Expected pointer to size in 'BFS_mutualfriend()'\n");
+		return -1;
+	}
+	if (recommendationlist == NULL) {
+		printf("Expected pointer to reccomendation list in 'BFS_mutualfriend()'\n");
+		return -1;
+	}
+	if (recommendationlist != NULL) {
+		printf("Expected reccomendation list to be cleared to NULL 'BFS_mutualfriend()'\n");
 		return -1;
 	}
 	resetsearchhitcount(graph);
@@ -679,8 +700,20 @@ int mutualintrestfriend(graph_t *graph, uint64_t refno, friends_t **recommendati
 		*recommendationlist = NULL;
 		return 0;
 	}
+	if (size == NULL) {
+		printf("Expected pointer to size in 'mutualintrestfriend()'\n");
+		return -1;
+	}
+	if (recommendationlist == NULL) {
+		printf("Expected pointer to reccomendation list in 'mutualintrestfriend()'\n");
+		return -1;
+	}
+	if (recommendationlist != NULL) {
+		printf("Expected reccomendation list to be cleared to NULL 'mutualintrestfriend()'\n");
+		return -1;
+	}
 	resetsearchhitcount(graph);
-	*size=0;
+	*size = 0;
 	for (uint64_t i = 0; i < graph->nodelistsize; i++) {
 		if (i == refno) {
 			continue;
@@ -713,7 +746,328 @@ int mutualintrestfriend(graph_t *graph, uint64_t refno, friends_t **recommendati
 	qsort(*recommendationlist, *size, sizeof(friends_t), sortfriends);
 	return 0;
 }
+int viewnode(graph_t *graph, uint64_t refno)
+{
+	node_t node;
+	if (graph == NULL) {
+		printf("Error null passed insted of pointer to graph in 'viewnode()'\n");
+		return -1;
+	}
+	node = graph->nodelist[refno];
+	printf("----------------------------------------------------\n");
+	printf("Node ID: %lu\n", refno);
+	printf("Name: %s\n", node.name);
+	printf("Recent Activity: ");
+	if (node.recentactivity != NULL) {
+		printf("%s\n", node.recentactivity);
+	} else {
+		printf("No Recent activity\n");
+	}
+	printf("Intrests:\n");
+	if (node.intrestcount == 0) {
+		printf("		Currently No Intrests\n");
+	}
+	for (uint64_t i = 0; i < node.intrestcount; i++) {
+		printf("		Intrest Id: %lu Intrest Name: %s\n", i, node.intrests[i]);
+	}
+	printf("Friends:\n");
+	if (node.friendCount == 0) {
+		printf("		Currently No Friends\n");
+	}
+	for (uint64_t i = 0; i < node.friendCount; i++) {
+		printf("		Name: %s, Node Id: %lu\n", graph->nodelist[node.friends[i]].name, node.friends[i]);
+	}
+	printf("----------------------------------------------------\n");
+	return 0;
+}
+int viewnodes(graph_t *graph)
+{
+	if (graph == NULL) {
+		printf("Error null passed insted of pointer to graph in 'viewnodes()'\n");
+		return -1;
+	}
+	if (graph->nodelistsize == 0) {
+		printf("There are currently no nodes\n");
+	}
+	for (uint64_t i = 0; i < graph->nodelistsize; i++) {
+		viewnode(graph, i);
+	}
+	return 0;
+}
+int getapproval(const char *prompt)
+{
+	int approval = 0;
+	while (1) {
+		printf("%s (y/n)\n>", prompt);
+		getchar();
+		approval = getchar();
+		if (approval == 'y' || approval == 'Y') {
+			return 1;
+		}
+		if (approval == 'n' || approval == 'N') {
+			return 0;
+		}
+		printf("Enter 'y' or 'n' \n");
+	}
+}
 int main(void)
 {
+	graph_t *graph = NULL;
+	int operation = 0;
+	uint64_t ref1 = 0;
+	uint64_t ref2 = 0;
+	uint64_t intrestno = 0;
+	size_t size = 0;
+	friends_t *sortedarray = NULL;
+	ssize_t strlength = 0;
+	char *name = NULL;
+	initnodelist(minimumlistsize, &graph);
+	while (1) {
+		printf("Available operations:\n");
+		printf("	1) View Graph Nodes\n");
+		printf("	2) Create New Graph Node\n");
+		printf("	3) Delete Graph node\n");
+		printf("	4) Add Intrest to node\n");
+		printf("	5) Remove Intrest from node\n");
+		printf("	6) Make two nodes friends\n");
+		printf("	7) Unfriend two nodes\n");
+		printf("	8) Recommend New Friends for specified node based on Mutual Connections\n");
+		printf("	9) Recommend New Friends for specified node based on Mutual Intrests\n");
+		printf("	10) Set Recent activity\n");
+		printf("	11) Clear Recent activity\n");
+		printf("	0) Exit Program\n");
+		printf("choose option (1/2/3/4/5/6/7/8/9/0)?\n>");
+		if (scanf("%d", &operation) != 1) {
+			int chr = 0;
+			while ((chr = getchar()) != '\n' && chr != EOF) {
+			}
+			continue;
+		}
+		switch (operation) {
+		case 1:
+			viewnodes(graph);
+			break;
+		case 2:
+			if (addnode(graph, &ref1)) {
+				printf("Failed to add node\n");
+			}
+			printf("Enter The Name of person\n>");
+			getchar();
+			strlength = getline(&name, &size, stdin);
+			if (strlength == -1) {
+				if (!feof(stdin)) {
+					perror("ERROR reading line");
+					free(name);
+					name = NULL;
+					removenode(graph, ref1);
+					break;
+				}
+			}
+			name[strlength - 1] = '\0';
+			graph->nodelist[ref1].name = name;
+			name = NULL;
+			viewnode(graph, ref1);
+			break;
+		case 3:
+			printf("Enter Node id of node to remove\n>");
+			scanf("%lu", &ref1);
+			if (graph->nodelistsize <= ref1) {
+				printf("Invalid Node entered\n");
+				break;
+			}
+			viewnode(graph, ref1);
+			if (!getapproval("Are you sure you want to remove this node")) {
+				break;
+			}
+			removenode(graph, ref1);
+			printf("Warning: The node ids may change check (View Graph Nodes) for new id\n");
+			break;
+		case 4:
+			printf("Enter the node id of the node to add the Intrest in?\n>");
+			scanf("%lu", &ref1);
+			if (graph->nodelistsize <= ref1) {
+				printf("Invalid Node entered\n");
+				break;
+			}
+			printf("Enter the name of Intrest\n>");
+			getchar();
+			strlength = getline(&name, &size, stdin);
+			if (strlength == -1) {
+				if (!feof(stdin)) {
+					perror("ERROR reading line");
+					free(name);
+					name = NULL;
+					break;
+				}
+			}
+			name[strlength - 1] = '\0';
+			if (addintrest(graph, ref1, name)) {
+				printf("Error adding Intrest\n");
+				free(name);
+				name = NULL;
+				break;
+			}
+			free(name);
+			name = NULL;
+			viewnode(graph, ref1);
+			break;
+		case 5:
+			printf("Enter Node id of intrest to remove\n>");
+			scanf("%lu", &ref1);
+			if (graph->nodelistsize <= ref1) {
+				printf("Invalid Node entered\n");
+				break;
+			}
+			viewnode(graph, ref1);
+			if (!getapproval("Are you sure you want to an intrest remove this node")) {
+				break;
+			}
+			printf("Enter Intrest Id of intrest to remove\n>");
+			scanf("%lu", &intrestno);
+			removeintrest(graph, ref1, intrestno);
+			viewnode(graph, ref1);
+			break;
+		case 6:
+			printf("Enter Node ids of two nodes to make friends\n");
+			printf("Enter id of first node\n>");
+			scanf("%lu", &ref1);
+			if (graph->nodelistsize <= ref1) {
+				printf("Invalid Node entered\n");
+				break;
+			}
+			printf("Enter id of second node\n>");
+			scanf("%lu", &ref2);
+			if (graph->nodelistsize <= ref2) {
+				printf("Invalid Node entered\n");
+				break;
+			}
+			viewnode(graph, ref1);
+			viewnode(graph, ref2);
+			if (!getapproval("Are you sure you want to make these two nodes friends")) {
+				break;
+			}
+			if (addfriend(graph, ref1, ref2)) {
+				printf("Adding friend failed\n");
+			}
+			viewnode(graph, ref1);
+			viewnode(graph, ref2);
+			break;
+		case 7:
+			printf("Enter Node ids of two nodes to UNfriends\n");
+			printf("Enter id of first node\n>");
+			scanf("%lu", &ref1);
+			if (graph->nodelistsize <= ref1) {
+				printf("Invalid Node entered\n");
+				break;
+			}
+			printf("Enter id of second node\n>");
+			scanf("%lu", &ref2);
+			if (graph->nodelistsize <= ref2) {
+				printf("Invalid Node entered\n");
+				break;
+			}
+			viewnode(graph, ref1);
+			viewnode(graph, ref2);
+			if (!getapproval("Are you sure you want to Unfriend these two nodes")) {
+				break;
+			}
+			if (removefriend(graph, ref1, ref2, 1)) {
+				printf("Unfriending node failed\n");
+			}
+			viewnode(graph, ref1);
+			viewnode(graph, ref2);
+			break;
+		case 8:
+			printf("Enter Node ids of nodes to Reccomend mutual Friends for\n>");
+			scanf("%lu", &ref1);
+			if (graph->nodelistsize <= ref1) {
+				printf("Invalid Node entered\n");
+				break;
+			}
+			printf("Reccomending friends for\n");
+			viewnode(graph, ref1);
+			putchar('\n');
+			putchar('\n');
+			BFS_mutualfriend(graph, ref1, &sortedarray, &size);
+			for (uint64_t i = 0; i < size; i++) {
+				printf("Reccomendation %lu with %lu mutual friends\n", i, sortedarray[i].mutualconnections);
+				viewnode(graph, sortedarray[i].friend);
+			}
+			free(sortedarray);
+			sortedarray = NULL;
+			break;
+		case 9:
+			printf("Enter Node ids of nodes to Reccomend Friends with mutual Intrests for\n>");
+			scanf("%lu", &ref1);
+			if (graph->nodelistsize <= ref1) {
+				printf("Invalid Node entered\n");
+				break;
+			}
+			printf("Reccomending friends for\n");
+			viewnode(graph, ref1);
+			putchar('\n');
+			putchar('\n');
+			mutualintrestfriend(graph, ref1, &sortedarray, &size);
+			for (uint64_t i = 0; i < size; i++) {
+				printf("Reccomendation %lu with %lu mutual Intrests\n", i, sortedarray[i].mutualconnections);
+				viewnode(graph, sortedarray[i].friend);
+			}
+			free(sortedarray);
+			sortedarray = NULL;
+			break;
+		case 10:
+			printf("Enter Node id of Recent activity to set\n>");
+			scanf("%lu", &ref1);
+			if (graph->nodelistsize <= ref1) {
+				printf("Invalid Node entered\n");
+				break;
+			}
+			viewnode(graph, ref1);
+			if (!getapproval("Are you sure you want to add an intrest to this node")) {
+				break;
+			}
+			if (graph->nodelist[ref1].recentactivity != NULL) {
+				free(graph->nodelist[ref1].recentactivity);
+				graph->nodelist[ref1].recentactivity = NULL;
+			}
+			printf("Enter the name of Recent Activity\n>");
+			getchar();
+			strlength = getline(&name, &size, stdin);
+			if (strlength == -1) {
+				if (!feof(stdin)) {
+					perror("ERROR reading line");
+					free(name);
+					name = NULL;
+					break;
+				}
+			}
+			name[strlength - 1] = '\0';
+			graph->nodelist[ref1].recentactivity = name;
+			name = NULL;
+			viewnode(graph, ref1);
+			break;
+		case 11:
+			printf("Enter Node id of Recent activity to clear\n>");
+			scanf("%lu", &ref1);
+			if (graph->nodelistsize <= ref1) {
+				printf("Invalid Node entered\n");
+				break;
+			}
+			viewnode(graph, ref1);
+			if (!getapproval("Are you sure you want to remove an interest from this node")) {
+				break;
+			}
+			free(graph->nodelist[ref1].recentactivity);
+			graph->nodelist[ref1].recentactivity = NULL;
+			viewnode(graph, ref1);
+			break;
+		case 0:
+			goto exit;
+		default:
+			printf("Invalid Option Selected\n\n");
+		}
+	}
+exit:
+	deinitnodelist(&graph);
 	return 0;
 }
