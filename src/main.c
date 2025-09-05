@@ -1,9 +1,10 @@
+#include <limits.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-
+#define percentmultiplier 100
 #define minimumlistsize 8
 #define basefriendssize 8
 #define baseintrestsize 8
@@ -13,7 +14,6 @@
 #define growthreshold 100
 #define shrinkthreshold 25
 
-#define topercent(nominator, denominatior) ((nominator * 100) / denominatior)
 //types
 typedef struct node {
 	char *name;
@@ -51,6 +51,7 @@ int deinitnodelist(graph_t **graph);
 int grownodelist(graph_t *graph);
 int checkshrinkfit(uint64_t count, uint64_t capacity, uint64_t minsize);
 uint64_t max(uint64_t numa, uint64_t numb);
+int topercent(uint64_t nominator, uint64_t denominatior);
 int shrinknodelist(graph_t *graph);
 int addnode(graph_t *graph, uint64_t *noderef);
 int removenode(graph_t *graph, uint64_t noderef);
@@ -157,6 +158,14 @@ uint64_t max(uint64_t numa, uint64_t numb)
 		return numa;
 	}
 	return numb;
+}
+int topercent(uint64_t nominator, uint64_t denominatior)
+{
+	if (denominatior == 0) {
+		printf("Attempted Division By zero\n");
+		return INT_MAX;
+	}
+	return (((int)nominator * percentmultiplier) / (int)denominatior);
 }
 int shrinknodelist(graph_t *graph)
 {
