@@ -67,7 +67,7 @@ int peek(queue_t *queue, Bfs_t *value, uint64_t index);
 int resetsearchhitcount(graph_t *graph);
 int sortfriends(const void *friend1p, const void *friend2p);
 int BFS_mutualfriend(graph_t *graph, uint64_t refno, friends_t **recommendationlist, uint64_t *size);
-
+int mutualintrestfriend(graph_t *graph, uint64_t refno, friends_t **recommendationlist, uint64_t *size);
 int initnodelist(uint64_t basesize, graph_t **graph)
 {
 	if (graph == NULL || *graph != NULL) {
@@ -648,7 +648,6 @@ int BFS_mutualfriend(graph_t *graph, uint64_t refno, friends_t **recommendationl
 			graph->nodelist[friend].searchhitcount++;
 		}
 	}
-	//TODO Create sorted friend recommendation list based on mutualconnections
 	*recommendationlist = (friends_t *)malloc(sizeof(friends_t) * queue->size);
 	if (*recommendationlist == NULL) {
 		perror("Memory allocation failed 'BFS_mutualfriend()' ");
@@ -662,6 +661,56 @@ int BFS_mutualfriend(graph_t *graph, uint64_t refno, friends_t **recommendationl
 	}
 	qsort(*recommendationlist, *size, sizeof(friends_t), sortfriends);
 	destroyqueue(&queue);
+	return 0;
+}
+int mutualintrestfriend(graph_t *graph, uint64_t refno, friends_t **recommendationlist, uint64_t *size)
+{
+	uint64_t index = 0;
+	if (graph == NULL) {
+		printf("Error null passed instead of pointer to graph in 'mutualintrestfriend()'\n");
+		return -1;
+	}
+	if (refno >= graph->nodelistsize) {
+		printf("Invalid refno in 'mutualintrestfriend()'\n");
+		return -1;
+	}
+	if (graph->nodelist[refno].intrestcount == 0) {
+		*size = 0;
+		*recommendationlist = NULL;
+		return 0;
+	}
+	resetsearchhitcount(graph);
+	*size=0;
+	for (uint64_t i = 0; i < graph->nodelistsize; i++) {
+		if (i == refno) {
+			continue;
+		}
+		for (uint64_t j = 0; j < graph->nodelist[i].intrestcount; j++) {
+			for (uint64_t k = 0; k < graph->nodelist[refno].intrestcount; k++) {
+				if (strcmp(graph->nodelist[i].intrests[j], graph->nodelist[refno].intrests[k]) == 0) {
+					graph->nodelist[i].searchhitcount++;
+				}
+			}
+		}
+		if (graph->nodelist[i].searchhitcount > 0) {
+			(*size)++;
+		}
+	}
+
+	*recommendationlist = (friends_t *)malloc(sizeof(friends_t) * *size);
+	if (*recommendationlist == NULL) {
+		perror("Memory allocation failed 'mutualintrestfriend()' ");
+		return -1;
+	}
+
+	for (uint64_t i = 0; i < graph->nodelistsize; i++) {
+		if (graph->nodelist[i].searchhitcount > 0) {
+			(*recommendationlist)[index].friend = i;
+			(*recommendationlist)[index].mutualconnections = graph->nodelist[i].searchhitcount;
+			index++;
+		}
+	}
+	qsort(*recommendationlist, *size, sizeof(friends_t), sortfriends);
 	return 0;
 }
 int main(void)
