@@ -345,9 +345,8 @@ int swapbackarrayremove(uint64_t *array, uint64_t arraysize, uint64_t target)
 		}
 	}
 	if (found) {
-		if (arraysize > 1) {
-			array[foundind] = array[arraysize - 1];
-		}
+		array[foundind] = array[arraysize - 1];
+
 	} else {
 		printf("Error Element to remove not found in 'swapbackarrayreplace()'\n");
 		return -1;
@@ -646,7 +645,7 @@ int BFS_mutualfriend(graph_t *graph, uint64_t refno, friends_t **recommendationl
 		printf("Expected pointer to reccomendation list in 'BFS_mutualfriend()'\n");
 		return -1;
 	}
-	if (recommendationlist != NULL) {
+	if (*recommendationlist != NULL) {
 		printf("Expected reccomendation list to be cleared to NULL 'BFS_mutualfriend()'\n");
 		return -1;
 	}
@@ -708,7 +707,7 @@ int mutualintrestfriend(graph_t *graph, uint64_t refno, friends_t **recommendati
 		printf("Expected pointer to reccomendation list in 'mutualintrestfriend()'\n");
 		return -1;
 	}
-	if (recommendationlist != NULL) {
+	if (*recommendationlist != NULL) {
 		printf("Expected reccomendation list to be cleared to NULL 'mutualintrestfriend()'\n");
 		return -1;
 	}
@@ -751,6 +750,10 @@ int viewnode(graph_t *graph, uint64_t refno)
 	node_t node;
 	if (graph == NULL) {
 		printf("Error null passed insted of pointer to graph in 'viewnode()'\n");
+		return -1;
+	}
+	if (refno >= graph->nodelistsize) {
+		printf("Invalid refno in 'viewnode()'\n");
 		return -1;
 	}
 	node = graph->nodelist[refno];
