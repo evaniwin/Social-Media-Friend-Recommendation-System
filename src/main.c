@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <sys/types.h>
 
 #define minimumlistsize 8
 #define basefriendssize 8
@@ -66,6 +65,7 @@ int enqueue(queue_t *queue, uint64_t value, uint64_t level);
 int dequeue(queue_t *queue, Bfs_t *value);
 int peek(queue_t *queue, Bfs_t *value, uint64_t index);
 int resetsearchhitcount(graph_t *graph);
+int sortfriends(const void *friend1p, const void *friend2p);
 int BFS_mutualfriend(graph_t *graph, uint64_t refno, friends_t **recommendationlist, uint64_t *size);
 
 int initnodelist(uint64_t basesize, graph_t **graph)
@@ -604,6 +604,18 @@ int resetsearchhitcount(graph_t *graph)
 	}
 	return 0;
 }
+int sortfriends(const void *friend1p, const void *friend2p)
+{
+	const friends_t *friend1 = friend1p;
+	const friends_t *friend2 = friend2p;
+	if (friend1->mutualconnections < friend2->mutualconnections) {
+		return 1;
+	}
+	if (friend1->mutualconnections > friend2->mutualconnections) {
+		return -1;
+	}
+	return 0;
+}
 int BFS_mutualfriend(graph_t *graph, uint64_t refno, friends_t **recommendationlist, uint64_t *size)
 {
 	queue_t *queue = NULL;
@@ -644,27 +656,11 @@ int BFS_mutualfriend(graph_t *graph, uint64_t refno, friends_t **recommendationl
 		return -1;
 	}
 	*size = queue->size;
-	for (uint64_t i = 0; i < queue->size; i++) {
-		uint64_t bigger = 0;
-		friends_t friendtmp;
-		Bfs_t val1;
-		peek(queue, &val1, i);
-		for (uint64_t j = 0; j < queue->size; j++) {
-			Bfs_t val2;
-			peek(queue, &val2, j);
-			if (graph->nodelist[val1.friend].searchhitcount < graph->nodelist[val2.friend].searchhitcount) {
-				bigger++;
-			}
-			if (graph->nodelist[val1.friend].searchhitcount == graph->nodelist[val2.friend].searchhitcount) {
-				if (i < j) {
-					bigger++;
-				}
-			}
-		}
-		friendtmp.friend = val1.friend;
-		friendtmp.mutualconnections = graph->nodelist[val1.friend].searchhitcount;
-		(*recommendationlist)[bigger] = friendtmp;
+	for (uint64_t i = 0; dequeue(queue, &value) == 0 && i < *size; i++) {
+		(*recommendationlist)[i].friend = value.friend;
+		(*recommendationlist)[i].mutualconnections = graph->nodelist[value.friend].searchhitcount;
 	}
+	qsort(*recommendationlist, *size, sizeof(friends_t), sortfriends);
 	destroyqueue(&queue);
 	return 0;
 }
