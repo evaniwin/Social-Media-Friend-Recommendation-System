@@ -671,7 +671,7 @@ int BFS_mutualfriend(graph_t *graph, uint64_t refno, friends_t **recommendationl
 		dequeue(queue, &value);
 		for (uint64_t j = 0; j < graph->nodelist[value.friend].friendCount; j++) {
 			friend = graph->nodelist[value.friend].friends[j];
-			if(friend == refno){
+			if (friend == refno) {
 				continue;
 			}
 			if (graph->nodelist[friend].searchhitcount == 0) {
@@ -1003,9 +1003,10 @@ int main(void)
 			viewnode(graph, ref1);
 			putchar('\n');
 			putchar('\n');
+			putchar('\n');
 			BFS_mutualfriend(graph, ref1, &sortedarray, &size);
 			for (uint64_t i = 0; i < size; i++) {
-				printf("Reccomendation %lu with %lu mutual friends\n", i+1, sortedarray[i].mutualconnections);
+				printf("Reccomendation %lu with %lu mutual friends\n", i + 1, sortedarray[i].mutualconnections);
 				viewnode(graph, sortedarray[i].friend);
 			}
 			free(sortedarray);
@@ -1022,9 +1023,10 @@ int main(void)
 			viewnode(graph, ref1);
 			putchar('\n');
 			putchar('\n');
+			putchar('\n');
 			mutualintrestfriend(graph, ref1, &sortedarray, &size);
 			for (uint64_t i = 0; i < size; i++) {
-				printf("Reccomendation %lu with %lu mutual Intrests\n", i+1, sortedarray[i].mutualconnections);
+				printf("Reccomendation %lu with %lu mutual Intrests\n", i + 1, sortedarray[i].mutualconnections);
 				viewnode(graph, sortedarray[i].friend);
 			}
 			free(sortedarray);
