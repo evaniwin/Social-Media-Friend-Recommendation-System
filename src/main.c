@@ -726,7 +726,7 @@ int mutualintrestfriend(graph_t *graph, uint64_t refno, friends_t **recommendati
 	resetsearchhitcount(graph);
 	*size = 0;
 	for (uint64_t i = 0; i < graph->nodelistsize; i++) {
-		if (i == refno) {
+		if (i == refno || checkifalreadyfriend(&graph->nodelist[i], refno)) {
 			continue;
 		}
 		for (uint64_t j = 0; j < graph->nodelist[i].intrestcount; j++) {
