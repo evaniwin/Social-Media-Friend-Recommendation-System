@@ -904,6 +904,10 @@ int main(void)
 				printf("Invalid Node entered\n");
 				break;
 			}
+			viewnode(graph, ref1);
+			if (!getapproval("Are you sure you want to add an intrest to this node node")) {
+				break;
+			}
 			printf("Enter the name of Intrest\n>");
 			getchar();
 			strlength = getline(&name, &size, stdin);
